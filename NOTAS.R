@@ -52,6 +52,22 @@
 
 #######################################################################################################################################
 
+# print(CREATE_LIBRARY(topic = "ACTUARIAL MATHEMATICS", subtopic = "RISK ADMINISTRATION"))
+# print(CREATE_LIBRARY(topic = "DEMOGRAPHY"))
+# print(CREATE_LIBRARY(topic = "ECONOMY", subtopic = "MACROECONOMICS"))
+
+#######################################################################################################################################
+
+# print(TOPIC_DATASET(topic = "ACTUARIAL MATHEMATICS"))
+# print(TOPIC_DATASET(topic = "DEMOGRAPHY"))
+# print(TOPIC_DATASET(topic = "ECONOMY"))
+
+#######################################################################################################################################
+
+
+
+
+
 #STEPS TO CREATE A FUNCTION
 
 

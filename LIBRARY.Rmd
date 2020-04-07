@@ -80,7 +80,7 @@ TOPICS <- function(json_files, topic, subtopic = NULL, title_author = c("Title",
 #' @The intention of this function is to create the path of each pdf in each subtopic of each topic
 #' Creating an open conection to the file with the definition of the variable TITLE
 
-link_title <- function(topic, subtopic = NULL){
+LINK_TITLE <- function(topic, subtopic = NULL){
   
   urls_json <- jsonlite::fromJSON(str_c(getwd(),"JSONS","URLS.json", sep ="/"))
   
@@ -89,11 +89,13 @@ link_title <- function(topic, subtopic = NULL){
   SELECTED_TOPIC <- str_subset(string = urls_json$Topics %>% names(),
                                pattern = topic)
   
-  SELECTED_SUBTOPIC <-subtopic(topic = topic, subtopic = subtopic)$result %>% 
+  SELECTED_SUBTOPIC <- subtopic(topic = topic, subtopic = subtopic)$result %>% 
     as.character()
   
-  title <- TOPICS(json_files = JSON_FILES(), topic = topic, subtopic = subtopic, title_author = "Title")
-  author <- TOPICS(json_files = JSON_FILES(), topic = topic, subtopic = subtopic, title_author = "Author")
+  title <- TOPICS(json_files = JSON_FILES(), topic = topic, 
+                  subtopic = subtopic, title_author = "Title")
+  author <- TOPICS(json_files = JSON_FILES(), topic = topic, 
+                   subtopic = subtopic, title_author = "Author")
   
   FILE <- str_c(title, str_c(author,"pdf",sep = "."), 
                 sep = ",")
@@ -108,53 +110,84 @@ link_title <- function(topic, subtopic = NULL){
 
 
 subtopic <- safely(function(topic, subtopic){
-    str_subset(string = urls_json$Topics[[topic]],
-               pattern = subtopic)
-  })
+  
+  urls_json <- jsonlite::fromJSON(str_c(getwd(),"JSONS","URLS.json", sep ="/"))
+  
+  str_subset(string = urls_json$Topics[[topic]],
+             pattern = subtopic)
+})
 
 ```
 
+```{r, include=FALSE, warning=FALSE}
 
+#' @The intention of this function is to create a dataset for each subtopic of each topic
+#' where the title is the connection to the pdf file
 
-```{r, include=FALSE}
-library(purrr) 
-
-map(c("data.table", "jsonlite", "DT", "glue"), require, character.only = TRUE)
-
-create_library <- function(props = "urls.json"){
+CREATE_LIBRARY <- function(topic, subtopic = NULL){
   
-  URLS <- jsonlite:: fromJSON(props)
-  
+  urls_json <- jsonlite::fromJSON(str_c(getwd(),"JSONS","URLS.json", sep ="/"))
   
   df <- data.table(
     
-    category = names(URLS),
+    topic = str_subset(string = urls_json$Topics %>% names(),
+                       pattern = topic),
     
-    title = link_title(),
+    subtopic = subtopic(topic = topic, subtopic = subtopic)$result %>% 
+      as.character(),
     
-    author = URLS[[1]]$Author)
-  
+    title = LINK_TITLE(topic = topic, subtopic = subtopic),
+    
+    author = TOPICS(json_files = JSON_FILES(), topic = topic, 
+                    subtopic = subtopic, title_author = "Author")
+    
+  )
   
   names(df) <- toupper(names(df))
   
-  df <- df[, lapply(.SD, toupper), .SDcols = names(df)]
+  df <- df[,lapply(.SD, toupper), .SDcols = names(df)] %>% 
+    .[,lapply(.SD, as.character), .SDcols = names(df)]
+  
 }
 
 
 
-link_title <- function(props = "urls.json"){
+#' @The intention of this function is to create a dataset for each Topic
+#' if the topic does not have elements, is = 0  means that there is no subtopics
+#' there is only title and author for that topic
+
+TOPIC_DATASET <- function(topic){
   
-  URLS <- jsonlite:: fromJSON(props)
+  urls_json <- jsonlite::fromJSON(str_c(getwd(),"JSONS","URLS.json", sep ="/"))$Topics
+  urls_json[["MATHEMATICS"]] <- NULL
   
-  title <- paste0(glue('<a target="_blank" href="{URLS[[1]]$URLS}','">{URLS[[1]]$Titles}</a>'))
+  if(length(urls_json[[topic]]) == 0) DF <- CREATE_LIBRARY(topic = topic)
   
-  return(title)
+  else DF <- map_df(urls_json[[topic]], CREATE_LIBRARY, topic = topic) %>% as.data.table()
+  
+  return(DF)
 }
 ```
 
 
+```{r, include=FALSE}
+#' @The intention of this function is to create the final dataset
+
+DATASET <- function(){
+  
+  urls_json <- jsonlite::fromJSON(str_c(getwd(),"JSONS","URLS.json", sep ="/"))$Topics
+  urls_json[["MATHEMATICS"]] <- NULL
+  
+  
+  map_df(names(urls_json), TOPIC_DATASET) %>% 
+    as.data.table() %>% return()
+  
+  
+}
+```
+
 ```{r, echo=FALSE}
-datatable(create_library(),
+datatable(DATASET(),
           rownames = FALSE, # remove row numbers
           filter = "top", # add filter on top of columns
           options = list(
