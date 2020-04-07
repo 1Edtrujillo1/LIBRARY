@@ -1,0 +1,169 @@
+---
+title: "LIBRARY"
+author: "Eduardo Trujillo"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r, include=FALSE, warning=FALSE}
+library(purrr) 
+
+map(c("data.table", "jsonlite", "DT", "glue", "stringr", "dplyr"), require, character.only = TRUE)
+
+#' @First the intention is to read each information from every file.json 
+#' and any file different from MATHEMATICS AND URLS and save all files in a list
+
+JSON_FILES <- function(){
+  
+  json_files<- str_subset(string = list.files(paste0(getwd(),"/","JSONS")), pattern = "\\json$") %>% 
+    str_subset(pattern = "^(?!^MATHEMATICS.*|URLS.*).*$")
+  
+  json_path <- paste0(paste0(getwd(),"/","JSONS"), 
+                      "/", json_files)
+  
+  JSON_FILES<- map(json_path, jsonlite:: fromJSON) %>% 
+    set_names(str_remove_all(string = json_files, 
+                             pattern = ".json"))
+  
+  return(JSON_FILES)
+}
+
+
+#' @The intention of the next function is to bring an output character vector, where the user select the topic, 
+#' subtopic and then select if he want to watch the title or the author.
+#' Explaining the function work:
+#' First Part: 
+#' If the length of the element 'topic' of a list is less or equal to 2, then we have two classifications:
+#' One is that the json do not has subtopic , it only has title and author "that is the first choice"
+#' The other option is that the json has subtopic
+#' For both parts we have to iterate over topic because we need to see if the name of each topic of json is Title or Author
+#' Second Part:
+#' If the length of the element 'topic' of a list is up to 2, then we bring the author 
+#' or title of the subtopic of the topic we want
+#' For part one and two we have to iterate over topic because we need to see the length of each topic of the list 
+
+TOPICS <- function(json_files, topic, subtopic = NULL, title_author = c("Title", "Author")){
+  
+  options(warn = -1) #hide warnings
+  
+  map(topic, function(topic){
+    
+    subject <- NA
+    
+    if(length(json_files[[topic]]) <= 2) {
+      
+      map(topic, function(topic){
+        
+        subject <- NA
+        
+        if(names(json_files[[topic]]) %in% c("Title" , "Author")) subject <- json_files[[topic]][[glue("{title_author}")]]
+        
+        else subject <-  json_files[[topic]][[subtopic]][[glue("{title_author}")]]
+        
+        return(subject)}) %>% flatten_chr()
+    }
+    
+    else if(length(json_files[[topic]]) > 2) subject <- json_files[[topic]][[subtopic]][[glue("{title_author}")]]
+    
+  }) %>% flatten_chr() %>% 
+    
+    return()
+  
+}
+```
+
+```{r, include=FALSE, warning=FALSE}
+
+#' @The intention of this function is to create the path of each pdf in each subtopic of each topic
+#' Creating an open conection to the file with the definition of the variable TITLE
+
+link_title <- function(topic, subtopic = NULL){
+  
+  urls_json <- jsonlite::fromJSON(str_c(getwd(),"JSONS","URLS.json", sep ="/"))
+  
+  URL <- urls_json[["General Path"]]
+  
+  SELECTED_TOPIC <- str_subset(string = urls_json$Topics %>% names(),
+                               pattern = topic)
+  
+  SELECTED_SUBTOPIC <-subtopic(topic = topic, subtopic = subtopic)$result %>% 
+    as.character()
+  
+  title <- TOPICS(json_files = JSON_FILES(), topic = topic, subtopic = subtopic, title_author = "Title")
+  author <- TOPICS(json_files = JSON_FILES(), topic = topic, subtopic = subtopic, title_author = "Author")
+  
+  FILE <- str_c(title, str_c(author,"pdf",sep = "."), 
+                sep = ",")
+  
+  PATH <- str_c(URL, SELECTED_TOPIC, SELECTED_SUBTOPIC, FILE, sep = "/")
+  
+  
+  TITLE <- paste0(glue('<a target="_blank" href="{PATH}','">{title}</a>')) %>% 
+    return()
+  
+}
+
+
+subtopic <- safely(function(topic, subtopic){
+    str_subset(string = urls_json$Topics[[topic]],
+               pattern = subtopic)
+  })
+
+```
+
+
+
+```{r, include=FALSE}
+library(purrr) 
+
+map(c("data.table", "jsonlite", "DT", "glue"), require, character.only = TRUE)
+
+create_library <- function(props = "urls.json"){
+  
+  URLS <- jsonlite:: fromJSON(props)
+  
+  
+  df <- data.table(
+    
+    category = names(URLS),
+    
+    title = link_title(),
+    
+    author = URLS[[1]]$Author)
+  
+  
+  names(df) <- toupper(names(df))
+  
+  df <- df[, lapply(.SD, toupper), .SDcols = names(df)]
+}
+
+
+
+link_title <- function(props = "urls.json"){
+  
+  URLS <- jsonlite:: fromJSON(props)
+  
+  title <- paste0(glue('<a target="_blank" href="{URLS[[1]]$URLS}','">{URLS[[1]]$Titles}</a>'))
+  
+  return(title)
+}
+```
+
+
+```{r, echo=FALSE}
+datatable(create_library(),
+          rownames = FALSE, # remove row numbers
+          filter = "top", # add filter on top of columns
+          options = list(
+            autoWidth = TRUE,
+            pageLength = 5, # show first 5 entries, default is 10
+            order = list(0, "asc") # order the title column by ascending order
+          ),
+          escape = FALSE # to make URLs clickable
+)
+
+```
+
