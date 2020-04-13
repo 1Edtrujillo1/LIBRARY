@@ -1,0 +1,43 @@
+---
+title: "EXPLANATION LIBRARY"
+author: "Eduardo Trujillo"
+output: html_document
+---
+
+On the first hand, all the pdf´s files were put in TITLE,Author format like this:
+
+![](IMAGES/FILES.png)
+
+After that, We need to create two JSON files:
+
+1. First one (URLS.json) containing the general path(that are my files) and the name of the topic with its subtopic of the folders, for example:
+
+![](IMAGES/GENERALPATH.png)
+
+ 2. The second JSON file consisted of adding the title of the book in one level, and the author in the next level of each subtopic of the respective topic, for example:
+ 
+![](IMAGES/INFORMATION.png)
+
+- We needded to create a JSON for each topic.
+
+Secondly, We created the JSON_FILES function to create a list with the information of all the topics JSON, (the second one above) except URLS JSON (the first JSON) and the MATHEMATICS(because I do not want my library with that books) 
+
+![](IMAGES/JSON_FILES.png)
+
+The previous function was created with the intention to create the TOPICS function that allowed us to select if we wanted the title or the author of the pdf book
+
+![](IMAGES/TOPICS.png)
+
+The previous function was to create the function LINK_TITLE, which gives us the path of where the pdf file (in the format of an affiliate link) in each Subtopic of each Topic folder. 
+
+![](IMAGES/LINK_TITLE.png)
+
+Finally, we created the dataset with the variables topic, subtopic, title and author in the CREATE_LIBRARY function,where the order of the dataset is based on the author(to get equal book´s author next to each other),for each subtopic of each topic.
+
+![](IMAGES/CREATE_LIBRARY.png)
+
+To conclude, the TOPIC_DATASET iterate over all subtopics of each topic to create a dataset based on topics and the DATASET function iterate overall topics to create the final dataset and for this we group by SUBTOPIC AND TOPIC, to get the order of the subtopics of each topic.
+
+
+
+

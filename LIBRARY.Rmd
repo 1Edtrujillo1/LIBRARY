@@ -78,7 +78,7 @@ TOPICS <- function(json_files, topic, subtopic = NULL, title_author = c("Title",
 ```{r, include=FALSE, warning=FALSE}
 
 #' @The intention of this function is to create the path of each pdf in each subtopic of each topic
-#' Creating an open conection to the file with the definition of the variable TITLE
+#' Creating an affiliate link to the file with the definition of the variable TITLE
 
 LINK_TITLE <- function(topic, subtopic = NULL){
   
@@ -146,12 +146,14 @@ CREATE_LIBRARY <- function(topic, subtopic = NULL){
   names(df) <- toupper(names(df))
   
   df <- df[,lapply(.SD, toupper), .SDcols = names(df)] %>% 
-    .[,lapply(.SD, as.character), .SDcols = names(df)]
+    .[,lapply(.SD, as.character), .SDcols = names(df)] %>% 
+    setorder(AUTHOR)
   
 }
 
+```
 
-
+```{r, include=FALSE}
 #' @The intention of this function is to create a dataset for each Topic
 #' if the topic does not have elements, is = 0  means that there is no subtopics
 #' there is only title and author for that topic
@@ -167,10 +169,9 @@ TOPIC_DATASET <- function(topic){
   
   return(DF)
 }
-```
 
 
-```{r, include=FALSE}
+
 #' @The intention of this function is to create the final dataset
 
 DATASET <- function(){
@@ -178,23 +179,33 @@ DATASET <- function(){
   urls_json <- jsonlite::fromJSON(str_c(getwd(),"JSONS","URLS.json", sep ="/"))$Topics
   urls_json[["MATHEMATICS"]] <- NULL
   
-  
   map_df(names(urls_json), TOPIC_DATASET) %>% 
-    as.data.table() %>% return()
+    as.data.table() %>% 
+    .[,.SD, by = c("TOPIC", "SUBTOPIC")] %>% 
+    return()
   
   
 }
 ```
 
 ```{r, echo=FALSE}
-datatable(DATASET(),
-          rownames = FALSE, # remove row numbers
-          filter = "top", # add filter on top of columns
+# the intention to convert variables of the dataset in factors is to the filter option of datatable function works, this is that when we select the filters in the web page then it show the respective filters
+
+factor_vars <- c("TOPIC", "SUBTOPIC", "AUTHOR") 
+
+df <- DATASET()[,(factor_vars):=lapply(.SD, as.factor), .SDcols = factor_vars]
+
+datatable(df,
+          
+          filter = list(position = 'top', clear = FALSE), # add filter on top of columns
+          
           options = list(
-            autoWidth = TRUE,
-            pageLength = 5, # show first 5 entries, default is 10
-            order = list(0, "asc") # order the title column by ascending order
-          ),
+            
+            autoWidth = TRUE, #adjust pixeles in HTML file
+            
+            pageLength = DATASET()[,.N,by = c("TOPIC", "SUBTOPIC")] %>% 
+              .[,.(mean(N, na.rm = TRUE))] %>% as.numeric()), # select the number of entries to show, default is 10),
+          
           escape = FALSE # to make URLs clickable
 )
 

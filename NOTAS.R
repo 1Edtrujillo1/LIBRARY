@@ -1,7 +1,13 @@
+#general info: https://datatables.net/
+#datatable: https://rstudio.github.io/DT/
+#column filter: https://rstudio.github.io/DT/008-filter.html
+#column filter: https://rstudio.github.io/DT/007-search.html
+
+
 
 #' @used for JSON_FILES() function 
 
-
+#(?<=\\[)(.*?)(?=\\]) bring everything between []
 #(?<=[.])\\w{0,5} bring everything after a point in a string
 #(?<=[.])json bring only de word json after a point in a string
 #\\.json$ everything that ends with json
@@ -63,9 +69,6 @@
 # print(TOPIC_DATASET(topic = "ECONOMY"))
 
 #######################################################################################################################################
-
-
-
 
 
 #STEPS TO CREATE A FUNCTION
