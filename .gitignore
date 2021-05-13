@@ -8,5 +8,5 @@
 *.XLSX
 *.rds
 *html
-JSONS
+*.yml
 IMAGES

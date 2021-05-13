@@ -6,208 +6,25 @@ output: html_document
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
+htmltools::tagList(rmarkdown::html_dependency_font_awesome())
 ```
 
-```{r, include=FALSE, warning=FALSE}
-library(purrr) 
+```{r, echo=FALSE, warning=FALSE, message=FALSE}
+# the intention to convert variables of the dataset in factors is to the filter 
+# option of datatable function, this is that when we select the filters 
+# in the web page then it will show the respective filters.
 
-map(c("data.table", "jsonlite", "DT", "glue", "stringr", "dplyr"), require, character.only = TRUE)
+# escape = FALSE to make URLs clickable
 
-#' @First the intention is to read each information from every file.json 
-#' and any file different from MATHEMATICS AND URLS and save all files in a list
+# pageLength: select the number of entries to show, default is 10)
 
-JSON_FILES <- function(){
-  
-  json_files<- str_subset(string = list.files(paste0(getwd(),"/","JSONS")), pattern = "\\json$") %>% 
-    str_subset(pattern = "^(?!^MATHEMATICS.*|URLS.*).*$")
-  
-  json_path <- paste0(paste0(getwd(),"/","JSONS"), 
-                      "/", json_files)
-  
-  JSON_FILES<- map(json_path, jsonlite:: fromJSON) %>% 
-    set_names(str_remove_all(string = json_files, 
-                             pattern = ".json"))
-  
-  return(JSON_FILES)
-}
-
-
-#' @The intention of the next function is to bring an output character vector, where the user select the topic, 
-#' subtopic and then select if he want to watch the title or the author.
-#' Explaining the function work:
-#' First Part: 
-#' If the length of the element 'topic' of a list is less or equal to 2, then we have two classifications:
-#' One is that the json do not has subtopic , it only has title and author "that is the first choice"
-#' The other option is that the json has subtopic
-#' For both parts we have to iterate over topic because we need to see if the name of each topic of json is Title or Author
-#' Second Part:
-#' If the length of the element 'topic' of a list is up to 2, then we bring the author 
-#' or title of the subtopic of the topic we want
-#' For part one and two we have to iterate over topic because we need to see the length of each topic of the list 
-
-TOPICS <- function(json_files, topic, subtopic = NULL, title_author = c("Title", "Author")){
-  
-  options(warn = -1) #hide warnings
-  
-  map(topic, function(topic){
-    
-    subject <- NA
-    
-    if(length(json_files[[topic]]) <= 2) {
-      
-      map(topic, function(topic){
-        
-        subject <- NA
-        
-        if(names(json_files[[topic]]) %in% c("Title" , "Author")) subject <- json_files[[topic]][[glue("{title_author}")]]
-        
-        else subject <-  json_files[[topic]][[subtopic]][[glue("{title_author}")]]
-        
-        return(subject)}) %>% flatten_chr()
-    }
-    
-    else if(length(json_files[[topic]]) > 2) subject <- json_files[[topic]][[subtopic]][[glue("{title_author}")]]
-    
-  }) %>% flatten_chr() %>% 
-    
-    return()
-  
-}
+source("parsing_functions.R")
+pull_info[,c("TOPIC", "SUBTOPIC"):=lapply(.SD, as.factor), .SDcols = c("TOPIC", "SUBTOPIC")]
+udeploy::design_DT(pull_info, 
+                   escape = FALSE,
+                   extra_options = list(pageLength = pull_info[,.N,by = c("TOPIC", "SUBTOPIC")] %>% 
+                                          .[,.(mean(N, na.rm = TRUE))] %>% as.numeric() %>% round()))
 ```
 
-```{r, include=FALSE, warning=FALSE}
 
-#' @The intention of this function is to create the path of each pdf in each subtopic of each topic
-#' Creating an affiliate link to the file with the definition of the variable TITLE
-
-LINK_TITLE <- function(topic, subtopic = NULL){
-  
-  urls_json <- jsonlite::fromJSON(str_c(getwd(),"JSONS","URLS.json", sep ="/"))
-  
-  URL <- urls_json[["General Path"]]
-  
-  SELECTED_TOPIC <- str_subset(string = urls_json$Topics %>% names(),
-                               pattern = topic)
-  
-  SELECTED_SUBTOPIC <- subtopic(topic = topic, subtopic = subtopic)$result %>% 
-    as.character()
-  
-  title <- TOPICS(json_files = JSON_FILES(), topic = topic, 
-                  subtopic = subtopic, title_author = "Title")
-  author <- TOPICS(json_files = JSON_FILES(), topic = topic, 
-                   subtopic = subtopic, title_author = "Author")
-  
-  FILE <- str_c(title, str_c(author,"pdf",sep = "."), 
-                sep = ",")
-  
-  PATH <- str_c(URL, SELECTED_TOPIC, SELECTED_SUBTOPIC, FILE, sep = "/")
-  
-  
-  TITLE <- paste0(glue('<a target="_blank" href="{PATH}','">{title}</a>')) %>% 
-    return()
-  
-}
-
-
-subtopic <- safely(function(topic, subtopic){
-  
-  urls_json <- jsonlite::fromJSON(str_c(getwd(),"JSONS","URLS.json", sep ="/"))
-  
-  str_subset(string = urls_json$Topics[[topic]],
-             pattern = subtopic)
-})
-
-```
-
-```{r, include=FALSE, warning=FALSE}
-
-#' @The intention of this function is to create a dataset for each subtopic of each topic
-#' where the title is the connection to the pdf file
-
-CREATE_LIBRARY <- function(topic, subtopic = NULL){
-  
-  urls_json <- jsonlite::fromJSON(str_c(getwd(),"JSONS","URLS.json", sep ="/"))
-  
-  df <- data.table(
-    
-    topic = str_subset(string = urls_json$Topics %>% names(),
-                       pattern = topic),
-    
-    subtopic = subtopic(topic = topic, subtopic = subtopic)$result %>% 
-      as.character(),
-    
-    title = LINK_TITLE(topic = topic, subtopic = subtopic),
-    
-    author = TOPICS(json_files = JSON_FILES(), topic = topic, 
-                    subtopic = subtopic, title_author = "Author")
-    
-  )
-  
-  names(df) <- toupper(names(df))
-  
-  df <- df[,lapply(.SD, toupper), .SDcols = names(df)] %>% 
-    .[,lapply(.SD, as.character), .SDcols = names(df)] %>% 
-    setorder(AUTHOR)
-  
-}
-
-```
-
-```{r, include=FALSE}
-#' @The intention of this function is to create a dataset for each Topic
-#' if the topic does not have elements, is = 0  means that there is no subtopics
-#' there is only title and author for that topic
-
-TOPIC_DATASET <- function(topic){
-  
-  urls_json <- jsonlite::fromJSON(str_c(getwd(),"JSONS","URLS.json", sep ="/"))$Topics
-  urls_json[["MATHEMATICS"]] <- NULL
-  
-  if(length(urls_json[[topic]]) == 0) DF <- CREATE_LIBRARY(topic = topic)
-  
-  else DF <- map_df(urls_json[[topic]], CREATE_LIBRARY, topic = topic) %>% as.data.table()
-  
-  return(DF)
-}
-
-
-
-#' @The intention of this function is to create the final dataset
-
-DATASET <- function(){
-  
-  urls_json <- jsonlite::fromJSON(str_c(getwd(),"JSONS","URLS.json", sep ="/"))$Topics
-  urls_json[["MATHEMATICS"]] <- NULL
-  
-  map_df(names(urls_json), TOPIC_DATASET) %>% 
-    as.data.table() %>% 
-    .[,.SD, by = c("TOPIC", "SUBTOPIC")] %>% 
-    return()
-  
-  
-}
-```
-
-```{r, echo=FALSE}
-# the intention to convert variables of the dataset in factors is to the filter option of datatable function works, this is that when we select the filters in the web page then it show the respective filters
-
-factor_vars <- c("TOPIC", "SUBTOPIC", "AUTHOR") 
-
-df <- DATASET()[,(factor_vars):=lapply(.SD, as.factor), .SDcols = factor_vars]
-
-datatable(df,
-          
-          filter = list(position = 'top', clear = FALSE), # add filter on top of columns
-          
-          options = list(
-            
-            autoWidth = TRUE, #adjust pixeles in HTML file
-            
-            pageLength = DATASET()[,.N,by = c("TOPIC", "SUBTOPIC")] %>% 
-              .[,.(mean(N, na.rm = TRUE))] %>% as.numeric()), # select the number of entries to show, default is 10),
-          
-          escape = FALSE # to make URLs clickable
-)
-
-```
-
+- Code available on <i class="fa fa-github"></i> [GitHub](https://github.com/1Edtrujillo1/LIBRARY)

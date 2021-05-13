@@ -8,8 +8,10 @@ This program let you create a useful library of your pdf´s files.
 
 1. purrr
 2. data.table
-3. jsonliste
-4. DT
-5. glue
-6. stringr
-7. dplyr
+3. stringr
+4. dplyr
+5. udeply
+6. DT
+7. config
+8. mongolite
+9. jsonlite
