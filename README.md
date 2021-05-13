@@ -10,7 +10,7 @@ This program let you create a useful library of your pdf´s files.
 2. data.table
 3. stringr
 4. dplyr
-5. udeply
+5. udeploy
 6. DT
 7. config
 8. mongolite
